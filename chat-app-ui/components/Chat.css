@@ -1,0 +1,24 @@
+.chat-box {
+  color: white;
+  display: flex;
+  margin: 10px 0;
+  gap: 10px;
+}
+.chat-box-sender {
+  justify-self: right;
+}
+.chat-box-receiver {
+  justify-self: left;
+}
+.chat-sender-msg {
+  background-color: green;
+  border-radius: 0.5rem 0.5rem 0.5rem 0.5rem;
+  border-bottom-right-radius: 0;
+  padding: 10px 30px 10px 15px;
+}
+.chat-receiver-msg {
+  background-color: blue;
+  border-radius: 0.5rem 0.5rem 0.5rem 0.5rem;
+  border-bottom-left-radius: 0;
+  padding: 10px 30px 10px 15px;
+}
