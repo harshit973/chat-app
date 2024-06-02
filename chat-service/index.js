@@ -11,10 +11,8 @@ import {
   deleteChat,
   getFriends,
   saveChat,
-  saveGroupChat,
   updateStatus,
 } from "./services/ChatService.js";
-import { deleteGroupChat } from "./services/ChatService.js";
 
 const app = express();
 dotenv.config();
@@ -104,7 +102,7 @@ io.on("connection", (socket) => {
     const cId = msg?.cId;
     const text = msg?.text;
     const message = await saveChat(sender, cId, text);
-    const payload = { ...msg, mId: message._id };
+    const payload = { ...msg,createdOn: message?.createdOn, mId: message._id };
     senderSocket.emit("sender msg", { ...payload, isSender: true });
     if (receiverSocket) {
       receiverSocket.emit("receive msg", payload);

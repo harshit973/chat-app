@@ -1,5 +1,6 @@
 import { usePopupStore } from "@/zustand/usePopupStore";
 import React, { useEffect, useRef, useState } from "react";
+import parse from 'html-react-parser';
 
 const PopupLayout = ({ title, onSubmit, currentPromptInfo }: any) => {
   const [promptInfo, setPromptInfo] = useState<any[]>();
@@ -70,7 +71,9 @@ const PopupLayout = ({ title, onSubmit, currentPromptInfo }: any) => {
               {promptInfo?.map((promptInput, idx) => {
                 return (
                   <>
-                    {promptInput?.type === "button" ? (
+                    {promptInput?.type === "body" ? (
+                      <p>{promptInput?.html ? parse(promptInput?.text) : promptInput?.text}</p>
+                    ) : promptInput?.type === "button" ? (
                       <button
                         style={{ width: "100%" }}
                         type="submit"

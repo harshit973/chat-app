@@ -11,6 +11,7 @@ import { useChatStore } from "@/zustand/useChatStore";
 import Search from "./Search";
 import { usePopupStore } from "@/zustand/usePopupStore";
 import { generateRandomId } from "@/Utility";
+import { useToastStore } from "@/zustand/useToastStore";
 
 const ConversationRoom = ({ conversationId, chatSocket }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
@@ -22,7 +23,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
   const [msgToBeDeleted, setMsgToBeDeleted] = useState<any>(null);
   const { authName } = useAuthStore();
   const { chats, updateChats } = useChatStore();
-
+  const { showToast } = useToastStore();
   const rendering = useRef(false);
 
   useEffect(() => {
@@ -58,6 +59,36 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
     setMessages(chats?.[conversationId] ?? []);
   }, [chats]);
 
+  const generateLink = (e:any) => {
+    showPrompt(
+      "Enter duration for expiry in minutes",
+      async (valueMap) => {
+        const expiryInSec = (valueMap?.["Expiry duration"] ?? 0) * 60;
+        try {
+          const link = await axios.post(
+            `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/invitation`,
+            {
+              groupId: conversationId,
+              expiryInSec: expiryInSec,
+            },{
+              withCredentials: true
+            }
+          );
+          showPrompt("Invitation url generated", async (e) => {}, [
+            { type: "body", text: `<a href='${link.data?.url ?? ""}' target='_blank'>${link.data?.url ?? ""}</a>`,html: true },
+            { text: "Ok", type: "button" },
+          ]);
+        } catch {
+          showToast("Unable to generate link please try again", 10);
+        }
+      },
+      [
+        { label: "Expiry duration", type: "number", value: "" },
+        { text: "Generate", type: "button" },
+      ]
+    );
+  };
+
   const deleteMsg = (text: any) => {
     if (text?.receiver === "-1") {
       socket?.emit("delete group msg", text);
@@ -91,6 +122,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
           receiver: receiver?.name ? "-1" : getReceiverName(receiver),
           sender: msg?.sender,
           isSender: msg?.sender === authName,
+          createdOn: new Date(msg?.createdOn)
         };
       });
       updateChats({
@@ -104,10 +136,6 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
       });
     }
   };
-
-  useEffect(() => {
-    console.log(rooms?.[conversationId]?.typingUsers);
-  }, [rooms?.[conversationId]?.typingUsers]);
 
   const getReceiverName = (room: any) => {
     if (room?.name) {
@@ -153,6 +181,10 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
     }
   };
 
+  const isMessageDeletable = (text:any) => {
+    return text?.createdOn && (new Date().getTime() - text?.createdOn)/1000 <= parseFloat(process.env.NEXT_PUBLIC_MESSAGE_DELETION_TIME ?? "0")
+  }
+
   return (
     <div className={"relative w-full"} style={{ height: "100%" }}>
       <div
@@ -162,6 +194,25 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
           position: "relative",
         }}
       >
+        {rooms?.[conversationId]?.name && <div className={" absolute top-2 right-2"} onClick={generateLink}>
+          <svg
+            className="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M13.213 9.787a3.391 3.391 0 0 0-4.795 0l-3.425 3.426a3.39 3.39 0 0 0 4.795 4.794l.321-.304m-.321-4.49a3.39 3.39 0 0 0 4.795 0l3.424-3.426a3.39 3.39 0 0 0-4.794-4.795l-1.028.961"
+            />
+          </svg>
+        </div>}
         {conversationId && (
           <>
             <Search
@@ -214,7 +265,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
                             text?.isSender ? "sender" : "receiver"
                           }`}
                         >
-                          {text?.isSender && text?.mId && (
+                          {text?.isSender && text?.mId && isMessageDeletable(text) && (
                             <svg
                               ref={(ele: any) => {
                                 msgMap.current.set(text?.mId, ele);

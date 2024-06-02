@@ -52,7 +52,28 @@ io.on("connection", (socket) => {
       const payload = JSON.parse(msgString);
       const receiverSocket = userSocketMap.get(username);
       receiverSocket?.emit("added to group", payload);
+    });
+    subscribe(`member_added_${username}`, async (msgString) => {
+      const payload = JSON.parse(msgString);
+      const receiverSocket = userSocketMap.get(username);
+      receiverSocket?.emit("member added", payload);
     });    
+    subscribe(`member_joined_${username}`,async(msgString)=>{
+      const payload = JSON.parse(msgString);
+      const cId = payload?.conversationId;
+      const groupInfo = await getGroupInfo(cId);
+      const member = payload?.member;
+      groupInfo?.participants?.forEach((receiver) => {
+        if (receiver !== member) {
+          const receiverSocket = userSocketMap.get(receiver);
+          if (receiverSocket) {
+            receiverSocket.emit("member added", payload);
+          } else if(receiver){
+            publish(`member_added_${receiver}`, msgString);
+          }
+        }
+      });            
+    })
   }
 
   userSocketMap.set(username, socket);
@@ -112,12 +133,14 @@ io.on("connection", (socket) => {
     const senderSocket = userSocketMap.get(sender);
     const text = msg?.text;
     const message = await saveGroupChat(cId, sender, text);
-    const payload = { ...msg, mId: message?._id };
+    const payload = { ...msg,createdOn: message?.createdOn, mId: message?._id };
     senderSocket.emit("sender msg", { ...payload, isSender: true });
     receivers?.participants?.forEach((receiver) => {
+      console.log("iterated to...",receiver)
       if (receiver !== sender) {
         const receiverSocket = userSocketMap.get(receiver);
         if (receiverSocket) {
+          console.log("emitting to....",receiver,payload)
           receiverSocket.emit("receive msg", payload);
         } else if(receiver){
           publish(`chat_${receiver}`, JSON.stringify(payload));

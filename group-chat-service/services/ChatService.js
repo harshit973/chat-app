@@ -1,5 +1,4 @@
 import { GroupConversationModel } from "../db/models/GroupConversationSchema.js";
-import { redisGetter, redisSetter } from "../caching/Redis/RedisTemplate.js";
 import { refineForSearch } from "../utill/Text.js";
 import mongoose, { Types } from "mongoose";
 import {
@@ -17,41 +16,6 @@ export const getChats = async (cId) => {
     "messages"
   );
   return conversation?.messages;
-};
-
-export const saveChat = async (sender, cId, text) => {
-  try {
-    const newMessage = {
-      _id: new Types.ObjectId(),
-      sender: sender,
-      text: text,
-      createdOn: new Date(),
-      active: true
-    };
-    ConversationModel.findOne({
-      _id: cId,
-      active: true,
-    })
-      .then((conversation) => {
-        if (!conversation) {
-          throw new Error("This conversation room does not exists");
-        }
-        if (!conversation?.messages) {
-          conversation.messages = [newMessage];
-        } else {
-          conversation?.messages?.push(newMessage);
-        }
-        conversation.save().then(() => {
-          addToIndex(cId, newMessage._id, getSearchDocument(newMessage));
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-    return newMessage;
-  } catch (error) {
-    console.log(error);
-  }
 };
 
 export const searchMessages = async (cId, searchText) => {
@@ -209,10 +173,6 @@ export const getGroups = async (authName, search = "") => {
 };
 
 export const getGroupInfo = async (cId) => {
-  const conversationCache = await redisGetter(cId);
-  if (conversationCache) {
-    return JSON.parse(conversationCache);
-  }
   const conversation = await GroupConversationModel.findOne(
     {
       _id: cId,
@@ -220,32 +180,7 @@ export const getGroupInfo = async (cId) => {
     },
     ["participants", "name"]
   );
-  redisSetter(
-    cId,
-    JSON.stringify({
-      _id: conversation._id,
-      participants: conversation.participants,
-      name: conversation.name,
-    })
-  );
   return conversation;
-};
-
-export const createConversation = async (participants) => {
-  try {
-    if (!(await conversationExists(participants))) {
-      const id = new Types.ObjectId();
-      const conversation = await ConversationModel.create({
-        _id: id,
-        participants: participants,
-      });
-      createIndex(id);
-      return conversation;
-    }
-  } catch (error) {
-    console.log(error);
-  }
-  return {};
 };
 
 export const addParticipantToConversation = async (cId, participant) => {
@@ -259,19 +194,6 @@ export const addParticipantToConversation = async (cId, participant) => {
     conversation.participants.push(participant);
   }
   await conversation.save()  
-};
-
-
-const conversationExists = async (participants) => {
-  try {
-    const conversation = await ConversationModel.findOne({
-      participants: participants,
-    });
-    return conversation ? true : false;
-  } catch (error) {
-    console.log(error);
-  }
-  return false;
 };
 
 export const createGroup = async (name, participants) => {

@@ -162,6 +162,13 @@ const page = ({ params }: ChatRoom) => {
         showToast(`${msg?.sender} sent a message for you in ${receiver}`);
       }
     });
+    groupChatSocket.on("member added", (member) => {
+      const conversationId = member?.conversationId;
+      const roomDetails = roomsRef.current?.[conversationId];
+      roomDetails.participants = [...roomDetails?.participants, member?.member];
+      updateRooms({ ...roomsRef.current, [conversationId]: roomDetails });
+      showToast(`${member?.member} joined ${roomDetails?.name}`);
+    });
     groupChatSocket.on("added to group", (group) => {
       updateRooms({ ...roomsRef.current, [group?._id]: group });
     });
@@ -184,7 +191,7 @@ const page = ({ params }: ChatRoom) => {
       const currentConversation = [...(chatStoreRef.current?.[cId] ?? [])];
       const updatedConversation = currentConversation?.map((existingMsg) => {
         return existingMsg?.tempTag === msg?.tempTag
-          ? { ...existingMsg, mId: msg?.mId }
+          ? { ...existingMsg, mId: msg?.mId, createdOn: new Date(msg?.createdOn ?? "") }
           : existingMsg;
       });
       updateChats({ ...chatStoreRef.current, [cId]: updatedConversation });
@@ -208,9 +215,6 @@ const page = ({ params }: ChatRoom) => {
         showToast(`${msg?.sender} sent a message for you in ${receiver}`);
       }
     });
-    chatSocket.on("added to group", (group) => {
-      updateRooms({ ...roomsRef.current, [group?._id]: group });
-    });
     chatSocket.on("status msg", (msg: any) => {
       updateStatus({ ...status, [msg?.username]: msg?.status });
     });
@@ -233,7 +237,7 @@ const page = ({ params }: ChatRoom) => {
       const currentConversation = [...(chatStoreRef.current?.[cId] ?? [])];
       const updatedConversation = currentConversation?.map((existingMsg) => {
         return existingMsg?.tempTag === msg?.tempTag
-          ? { ...existingMsg, mId: msg?.mId }
+          ? { ...existingMsg, mId: msg?.mId, createdOn: new Date(msg?.createdOn ?? "") }
           : existingMsg;
       });
       updateChats({ ...chatStoreRef.current, [cId]: updatedConversation });
@@ -331,7 +335,8 @@ const page = ({ params }: ChatRoom) => {
           );
         }}
       />
-      {params?.conversationId ? (
+      {params?.conversationId &&
+      rooms?.[getConversationIdFromParams(params)] ? (
         <ConversationRoom
           chatSocket={getConversationSocket()}
           conversationId={getConversationIdFromParams(params)}

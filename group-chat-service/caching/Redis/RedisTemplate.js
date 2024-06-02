@@ -18,3 +18,12 @@ export const redisGetter = async (key) => {
     return null;
   }
 };
+
+export const redisInvalidate = async (key) => {
+  try {
+    return await redis.del(key)
+  } catch (e) {
+    console.log(e)
+    return null;
+  }
+};

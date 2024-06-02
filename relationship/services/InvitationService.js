@@ -52,4 +52,5 @@ export const processInvitation = async (invitationId, authName) => {
     `${process.env.CHAT_HOST}/conversations/${conversationId}/addParticipant`,
     { participantName: authName }
   );
+  return invitation;
 };

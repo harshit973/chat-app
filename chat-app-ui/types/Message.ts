@@ -7,5 +7,6 @@ export interface Message {
     sender: string;
     isSender: boolean;
     canDelete?: boolean;
+    createdOn?: Date
   }
   
