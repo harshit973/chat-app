@@ -3,14 +3,12 @@
 import { Message } from "@/types/Message";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { useParticipantStore } from "@/zustand/useParticipantsStore";
-import { useStatusStore } from "@/zustand/useStatusStore";
 import React, { useEffect, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import "./Chat.css";
 import axios from "axios";
 import { useChatStore } from "@/zustand/useChatStore";
 import Search from "./Search";
-import { useToastStore } from "@/zustand/useToastStore";
 import { usePopupStore } from "@/zustand/usePopupStore";
 import { generateRandomId } from "@/Utility";
 
@@ -107,6 +105,10 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
     }
   };
 
+  useEffect(() => {
+    console.log(rooms?.[conversationId]?.typingUsers);
+  }, [rooms?.[conversationId]?.typingUsers]);
+
   const getReceiverName = (room: any) => {
     if (room?.name) {
       return room?.name;
@@ -129,6 +131,15 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
     }
   };
 
+  const sendTypingEvent = () => {
+    const payload = {
+      cId: conversationId,
+      sender: authName,
+      receiver: msg?.receiver,
+    };
+    socket?.emit("typing msg", payload);
+  };
+
   const broadcastMsg = (e: any) => {
     e.preventDefault();
     if (socket && msg && msg.text) {
@@ -137,7 +148,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
       const cId = msg?.cId;
       const currentConversation = [...(chats?.[cId] ?? []), senderPayload];
       updateChats({ ...chats, [cId]: currentConversation });
-      socket.emit("broadcast msg", receiverPayload);      
+      socket.emit("broadcast msg", receiverPayload);
       setMsg(null);
     }
   };
@@ -146,7 +157,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
     <div className={"relative w-full"} style={{ height: "100%" }}>
       <div
         style={{
-          width: "82%",
+          width: "75%",
           height: "100%",
           position: "relative",
         }}
@@ -269,6 +280,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
                       className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                       placeholder="Leave a message..."
                       onChange={(e) => {
+                        sendTypingEvent();
                         const room = rooms?.[conversationId];
                         const msg = {
                           text: e.currentTarget.value,
@@ -302,7 +314,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
           right: 0,
           bottom: 0,
           top: 0,
-          width: "18%",
+          width: "25%",
           borderLeft: "1px solid #d3d3d3",
         }}
       >
@@ -310,25 +322,32 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
           rooms?.[conversationId]?.participants?.map((participant: any) => {
             return (
               <div
-                className={"p-2 flex align-middle justify-start"}
+                className={"p-2"}
                 style={{ borderBottom: "1px solid #d3d3d3" }}
               >
-                <svg
-                  className="w-6 h-6 text-gray-800 dark:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4Zm10 5a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm0 3a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm0 3a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm-8-5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm1.942 4a3 3 0 0 0-2.847 2.051l-.044.133-.004.012c-.042.126-.055.167-.042.195.006.013.02.023.038.039.032.025.08.064.146.155A1 1 0 0 0 6 17h6a1 1 0 0 0 .811-.415.713.713 0 0 1 .146-.155c.019-.016.031-.026.038-.04.014-.027 0-.068-.042-.194l-.004-.012-.044-.133A3 3 0 0 0 10.059 14H7.942Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <p className={" ps-2"}>{participant}</p>
+                <div className="flex align-middle justify-start">
+                  <svg
+                    className="w-6 h-6 text-gray-800 dark:text-white"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4Zm10 5a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm0 3a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm0 3a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1Zm-8-5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm1.942 4a3 3 0 0 0-2.847 2.051l-.044.133-.004.012c-.042.126-.055.167-.042.195.006.013.02.023.038.039.032.025.08.064.146.155A1 1 0 0 0 6 17h6a1 1 0 0 0 .811-.415.713.713 0 0 1 .146-.155c.019-.016.031-.026.038-.04.014-.027 0-.068-.042-.194l-.004-.012-.044-.133A3 3 0 0 0 10.059 14H7.942Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  <p className={" ps-2"}>{participant}</p>
+                </div>
+
+                {rooms?.[conversationId]?.typingUsers &&
+                  rooms?.[conversationId]?.typingUsers?.has(participant) && (
+                    <p>typing...</p>
+                  )}
               </div>
             );
           })}

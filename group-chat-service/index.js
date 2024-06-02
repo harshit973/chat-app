@@ -57,22 +57,21 @@ io.on("connection", (socket) => {
 
   userSocketMap.set(username, socket);
 
-  socket.on("add group", async(group)=>{
+  socket.on("add group", async (group) => {
     const name = group?.name;
     const participants = group.participants;
-    const createdGroup = await createGroup(name,participants)
-    participants?.forEach((participant)=>{
-      const memberSocket = userSocketMap.get(participant)
-      if(memberSocket){
-        memberSocket?.emit("added to group",createdGroup);
-      }else{
-        publish(`add_group_${participant}`, JSON.stringify(createGroup));        
+    const createdGroup = await createGroup(name, participants);
+    participants?.forEach((participant) => {
+      const memberSocket = userSocketMap.get(participant);
+      if (memberSocket) {
+        memberSocket?.emit("added to group", createdGroup);
+      } else if(participant){
+        publish(`add_group_${participant}`, JSON.stringify(createGroup));
       }
-    })
-  })
+    });
+  });
 
-
-  socket.on("typing msg", async(typingMsg) => {
+  socket.on("typing msg", async (typingMsg) => {
     const cId = typingMsg?.cId;
     const receivers = await getGroupInfo(cId);
     const sender = typingMsg?.sender;
@@ -81,7 +80,7 @@ io.on("connection", (socket) => {
         const receiverSocket = userSocketMap.get(receiver);
         if (receiverSocket) {
           receiverSocket.emit("typing msg", typingMsg);
-        } else {
+        } else if(receiver){
           publish(`typing_${receiver}`, JSON.stringify(typingMsg));
         }
       }
@@ -99,7 +98,7 @@ io.on("connection", (socket) => {
         const receiverSocket = userSocketMap.get(receiver);
         if (receiverSocket) {
           receiverSocket.emit("delete msg", msg);
-        } else {
+        } else if(receiver){
           publish(`delete_${receiver}`, JSON.stringify(msg));
         }
       }
@@ -120,14 +119,14 @@ io.on("connection", (socket) => {
         const receiverSocket = userSocketMap.get(receiver);
         if (receiverSocket) {
           receiverSocket.emit("receive msg", payload);
-        } else {
+        } else if(receiver){
           publish(`chat_${receiver}`, JSON.stringify(payload));
         }
       }
     });
   });
 });
-app.use(verifyToken)
+app.use(verifyToken);
 
 app.get("/health", getHealth);
 app.use("/groupConversations", groupRouter);

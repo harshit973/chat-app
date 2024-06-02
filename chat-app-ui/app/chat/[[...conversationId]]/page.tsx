@@ -20,13 +20,14 @@ const page = ({ params }: ChatRoom) => {
   const { showPrompt } = usePopupStore();
   const { rooms, updateRooms } = useParticipantStore();
   const [chatSocket, setChatSocket] = useState<Socket | null>(null);
-  const [groupChatSocket, setGroupChatSocket] = useState<Socket | null>(null);  
+  const [groupChatSocket, setGroupChatSocket] = useState<Socket | null>(null);
   const [relationSocket, setRelationSocket] = useState<Socket | null>(null);
   const { status, updateStatus } = useStatusStore();
   const { chats, updateChats } = useChatStore();
   const { showToast } = useToastStore();
   const chatStoreRef = useRef(chats);
   const roomsRef = useRef(rooms);
+  const NotTypingEventRef = useRef<any>(null);
 
   useEffect(() => {
     if (!rendered.current) {
@@ -35,11 +36,14 @@ const page = ({ params }: ChatRoom) => {
           username: authName,
         },
       });
-      const groupChatSocket: any = io(`${process.env.NEXT_PUBLIC_GROUP_CHAT_HOST}`, {
-        query: {
-          username: authName,
-        },        
-      })
+      const groupChatSocket: any = io(
+        `${process.env.NEXT_PUBLIC_GROUP_CHAT_HOST}`,
+        {
+          query: {
+            username: authName,
+          },
+        }
+      );
       const relationSocket: any = io(
         `${process.env.NEXT_PUBLIC_RELATION_HOST}`,
         {
@@ -49,7 +53,7 @@ const page = ({ params }: ChatRoom) => {
         }
       );
       setChatSocket(chatSocket);
-      setGroupChatSocket(groupChatSocket)
+      setGroupChatSocket(groupChatSocket);
       setRelationSocket(relationSocket);
       rendered.current = true;
     }
@@ -60,7 +64,7 @@ const page = ({ params }: ChatRoom) => {
   }, []);
 
   useEffect(() => {
-    chatStoreRef.current = chats
+    chatStoreRef.current = chats;
   }, [chats]);
 
   useEffect(() => {
@@ -79,16 +83,80 @@ const page = ({ params }: ChatRoom) => {
     return params?.conversationId?.[0];
   };
 
+  const manageDMTypingEvent = () => {
+    if (chatSocket) {
+      const conversationId = getConversationIdFromParams(params);
+      chatSocket.on("typing msg", (typingMsg: any) => {
+        const sender = typingMsg?.sender;
+        if (typingMsg?.cId === conversationId && sender) {
+          let roomDetails = roomsRef.current?.[conversationId] ?? {};
+          const typingUsers = roomDetails?.typingUsers ?? new Set();
+          typingUsers.add(sender);
+          roomDetails = { ...roomDetails, typingUsers: typingUsers };
+          updateRooms({ ...roomsRef.current, [conversationId]: roomDetails });
+          const notTypingEvent = NotTypingEventRef.current;
+          const currentNotTypingEvent = notTypingEvent?.[sender];
+          if (currentNotTypingEvent) {
+            clearTimeout(currentNotTypingEvent);
+            delete NotTypingEventRef.current?.[sender];
+          }
+          const timer = setTimeout(() => {
+            let roomDetails = roomsRef.current[conversationId];
+            const typingUsers = roomDetails.typingUsers;
+            typingUsers.delete(sender);
+            updateRooms({
+              ...roomsRef.current,
+              [conversationId]: { ...roomDetails, typingUsers: typingUsers },
+            });
+          }, 2000);
+          NotTypingEventRef.current = { ...notTypingEvent, [sender]: timer };
+        }
+      });
+    }
+  };
+
+  const manageGroupTypingEvent = () => {
+    if (groupChatSocket) {
+      const conversationId = getConversationIdFromParams(params);
+      groupChatSocket.on("typing msg", (typingMsg: any) => {
+        const sender = typingMsg?.sender;
+        if (typingMsg?.cId === conversationId && sender) {
+          let roomDetails = roomsRef.current?.[conversationId] ?? {};
+          const typingUsers = roomDetails?.typingUsers ?? new Set();
+          typingUsers.add(sender);
+          roomDetails = { ...roomDetails, typingUsers: typingUsers };
+          updateRooms({ ...roomsRef.current, [conversationId]: roomDetails });
+          const notTypingEvent = NotTypingEventRef.current;
+          const currentNotTypingEvent = notTypingEvent?.[sender];
+          if (currentNotTypingEvent) {
+            clearTimeout(currentNotTypingEvent);
+          }
+          const timer = setTimeout(() => {
+            let roomDetails = roomsRef.current[conversationId];
+            const typingUsers = roomDetails.typingUsers;
+            typingUsers.delete(sender);
+            updateRooms({
+              ...roomsRef.current,
+              [conversationId]: { ...roomDetails, typingUsers: typingUsers },
+            });
+          }, 2000);
+          NotTypingEventRef.current = { ...notTypingEvent, [sender]: timer };
+        }
+      });
+    }
+  };
+
   const initializeGroupChatWebSocket = () => {
     if (!groupChatSocket) {
       return;
     }
+    manageGroupTypingEvent();
     groupChatSocket.on("receive msg", (msg: Message) => {
       const cId = msg?.cId;
       const roomDetails = roomsRef.current?.[cId];
       const receiver =
         msg?.receiver === "-1" ? `${roomDetails?.name ?? ""} group` : "DM";
-      const currentConversation = [...(chatStoreRef.current?.[cId] ?? []),msg];
+      const currentConversation = [...(chatStoreRef.current?.[cId] ?? []), msg];
       updateChats({ ...chatStoreRef.current, [cId]: currentConversation });
       if (!isMessageForCurrentConversation(msg) && msg?.sender && receiver) {
         showToast(`${msg?.sender} sent a message for you in ${receiver}`);
@@ -128,12 +196,13 @@ const page = ({ params }: ChatRoom) => {
     if (!chatSocket) {
       return;
     }
+    manageDMTypingEvent();
     chatSocket.on("receive msg", (msg: Message) => {
       const cId = msg?.cId;
       const roomDetails = roomsRef.current?.[cId];
       const receiver =
         msg?.receiver === "-1" ? `${roomDetails?.name ?? ""} group` : "DM";
-      const currentConversation = [...(chatStoreRef.current?.[cId] ?? []),msg];
+      const currentConversation = [...(chatStoreRef.current?.[cId] ?? []), msg];
       updateChats({ ...chatStoreRef.current, [cId]: currentConversation });
       if (!isMessageForCurrentConversation(msg) && msg?.sender && receiver) {
         showToast(`${msg?.sender} sent a message for you in ${receiver}`);
@@ -198,14 +267,13 @@ const page = ({ params }: ChatRoom) => {
       : room?.participants[0];
   };
 
-
   const getConversationSocket = () => {
     const room = rooms?.[getConversationIdFromParams(params)];
-    if(!room){
+    if (!room) {
       return null;
     }
-    return room?.name ? groupChatSocket : chatSocket
-  }
+    return room?.name ? groupChatSocket : chatSocket;
+  };
 
   return (
     <div

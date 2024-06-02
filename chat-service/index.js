@@ -42,16 +42,18 @@ io.on("connection", (socket) => {
         receiverSocket.emit("delete msg", msg);
       }
     });
+    subscribe(`typing_${username}`, async (msgString) => {
+      const msg = JSON.parse(msgString);
+      const receiverSocket = userSocketMap.get(username);
+      if (receiverSocket) {
+        receiverSocket.emit("typing msg", msg);
+      }
+    });
     subscribe(`status_${username}`, async (msgString) => {
       const payload = JSON.parse(msgString);
       const receiverSocket = userSocketMap.get(username);
       receiverSocket?.emit("status msg", payload);
-    });    
-    subscribe(`add_group_${username}`, async (msgString) => {
-      const payload = JSON.parse(msgString);
-      const receiverSocket = userSocketMap.get(username);
-      receiverSocket?.emit("added to group", payload);
-    });    
+    });
   }
 
   userSocketMap.set(username, socket);
@@ -106,24 +108,20 @@ io.on("connection", (socket) => {
     senderSocket.emit("sender msg", { ...payload, isSender: true });
     if (receiverSocket) {
       receiverSocket.emit("receive msg", payload);
-    } else {
+    } else if (receiver) {
       publish(`chat_${receiver}`, JSON.stringify(payload));
     }
   });
 
-  socket.on("add group", async(group)=>{
-    const name = group?.name;
-    const participants = group.participants;
-    const createdGroup = await createGroup(name,participants)
-    participants?.forEach((participant)=>{
-      const memberSocket = userSocketMap.get(participant)
-      if(memberSocket){
-        memberSocket?.emit("added to group",createdGroup);
-      }else{
-        publish(`add_group_${participant}`, JSON.stringify(createGroup));        
-      }
-    })
-  })
+  socket.on("typing msg", async (msg) => {
+    const receiver = msg?.receiver;
+    const receiverSocket = userSocketMap.get(receiver);
+    if (receiverSocket) {
+      receiverSocket.emit("typing msg", msg);
+    } else if (receiver) {
+      publish(`typing_${receiver}`, JSON.stringify(msg));
+    }
+  });
 
   socket.on("delete msg", async (msg) => {
     const cId = msg?.cId;
@@ -133,48 +131,9 @@ io.on("connection", (socket) => {
     const receiverSocket = userSocketMap.get(receiver);
     if (receiverSocket) {
       receiverSocket.emit("delete msg", msg);
-    } else {
+    } else if (receiver) {
       publish(`delete_${receiver}`, JSON.stringify(msg));
     }
-  });
-
-  socket.on("delete group msg", async (msg) => {
-    const cId = msg?.cId;
-    const mId = msg?.mId;
-    await deleteGroupChat(cId, mId);
-    const receivers = await getGroupInfo(cId);
-    const sender = msg?.sender;
-    receivers?.participants?.forEach((receiver) => {
-      if (receiver !== sender) {
-        const receiverSocket = userSocketMap.get(receiver);
-        if (receiverSocket) {
-          receiverSocket.emit("delete msg", msg);
-        } else {
-          publish(`delete_${receiver}`, JSON.stringify(msg));
-        }
-      }
-    });
-  });
-
-  socket.on("broadcast msg", async (msg) => {
-    const cId = msg?.cId;
-    const receivers = await getGroupInfo(cId);
-    const sender = msg?.sender;
-    const senderSocket = userSocketMap.get(sender);
-    const text = msg?.text;
-    const message = await saveGroupChat(cId, sender, text);
-    const payload = { ...msg, mId: message?._id };
-    senderSocket.emit("sender msg", { ...payload, isSender: true });
-    receivers?.participants?.forEach((receiver) => {
-      if (receiver !== sender) {
-        const receiverSocket = userSocketMap.get(receiver);
-        if (receiverSocket) {
-          receiverSocket.emit("receive msg", payload);
-        } else {
-          publish(`chat_${receiver}`, JSON.stringify(payload));
-        }
-      }
-    });
   });
 });
 app.get("/health", getHealth);

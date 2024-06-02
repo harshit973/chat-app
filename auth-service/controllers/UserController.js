@@ -18,7 +18,6 @@ export const getUsers = async (req, res) => {
 export const updateStatus = async (req, res) => {
   const { status } = req?.body;
   const {authName} = req?.params;
-  console.log(authName,status)
   if(!authName){
     res.status(404).send("User not found")
   }
