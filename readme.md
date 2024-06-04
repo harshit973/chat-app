@@ -26,6 +26,13 @@
 - It offers high availability 
 - It has low latency
 - It is horizontally scalable
+  
+# Microservices
+- chat-service: handles direct messaging between users.
+- group-chat-service: handles group messaging.
+- auth-service: handles authentication, login, registration, and decoding of the authorization token.
+- status-service: handles online and offline status.
+- relationship-service: managing friend requests and adding new people to the group.
 
 # Trade offs
 - Down Scaling or upscaling system when users are connected can lead to disconnection of websockets and make user status offline till he is connected again
