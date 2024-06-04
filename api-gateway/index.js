@@ -13,7 +13,8 @@ const routes = {
   "/api/conversations*": `http://${process.env.CHAT_BE}`,
   "/api/groupConversations*": `http://${process.env.GROUP_CHAT_BE}`,
   "/api/health*": `http://${process.env.CHAT_BE}`,
-  "/api/invitation*": `http://${process.env.RELATION_BE}`
+  "/api/invitation*": `http://${process.env.RELATION_BE}`,
+  "/api/status*": `http://${process.env.STATUS_BE}`
 };
 
 const pathRewrite = async (path, req) => {

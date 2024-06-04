@@ -48,7 +48,7 @@ const AppRenderer = ({ children }: ComponentChildren) => {
     });
     await axios
       .post(
-        `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/users/status`,
+        `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/status`,
         { users: friends },
         {
           withCredentials: true,

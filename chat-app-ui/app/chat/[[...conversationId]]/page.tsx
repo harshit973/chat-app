@@ -36,6 +36,11 @@ const page = ({ params }: ChatRoom) => {
           username: authName,
         },
       });
+      io(`${process.env.NEXT_PUBLIC_STATUS_HOST}`, {
+        query: {
+          username: authName,
+        },
+      });      
       const groupChatSocket: any = io(
         `${process.env.NEXT_PUBLIC_GROUP_CHAT_HOST}`,
         {

@@ -7,12 +7,7 @@ import { connectToMongoDb } from "./db/ConnectToMongoDb.js";
 import cookieParser from "cookie-parser";
 import { publish, subscribe } from "./pubsub/redis/PubSub.js";
 import router from "./routes/ConversationRouter.js";
-import {
-  deleteChat,
-  getFriends,
-  saveChat,
-  updateStatus,
-} from "./services/ChatService.js";
+import { deleteChat, getFriends, saveChat } from "./services/ChatService.js";
 
 const app = express();
 dotenv.config();
@@ -47,6 +42,27 @@ io.on("connection", (socket) => {
         receiverSocket.emit("typing msg", msg);
       }
     });
+    subscribe(`status_msg_${username}`, async (msgString) => {
+      const msg = JSON.parse(msgString);
+      const authName = msg?.authName;
+      const status = msg?.status;
+      getFriends(authName).then((rooms) => {
+        rooms.forEach((room) => {
+          const participants = room?.participants;
+          const receiver =
+            participants?.[0] === username
+              ? participants?.[1]
+              : participants?.[0];
+          const receiverSocket = userSocketMap.get(receiver);
+          const payload = { username: username, status: status };
+          if (receiverSocket) {
+            receiverSocket.emit("status msg", payload);
+          } else {
+            publish(`status_${receiver}`, JSON.stringify(payload));
+          }
+        });
+      });
+    });
     subscribe(`status_${username}`, async (msgString) => {
       const payload = JSON.parse(msgString);
       const receiverSocket = userSocketMap.get(username);
@@ -56,44 +72,6 @@ io.on("connection", (socket) => {
 
   userSocketMap.set(username, socket);
 
-  updateStatus(username, 1);
-
-  getFriends(username).then((rooms) => {
-    rooms.forEach((room) => {
-      const participants = room?.participants;
-      const receiver =
-        participants?.[0] === username ? participants?.[1] : participants?.[0];
-      const receiverSocket = userSocketMap.get(receiver);
-      const payload = { username: username, status: 1 };
-      if (receiverSocket) {
-        receiverSocket.emit("status msg", payload);
-      } else {
-        publish(`status_${receiver}`, JSON.stringify(payload));
-      }
-    });
-  });
-
-  socket.on("disconnect", (reason) => {
-    updateStatus(username, 0);
-    getFriends(username).then((rooms) => {
-      rooms.forEach((room) => {
-        const participants = room?.participants;
-        const receiver =
-          participants?.[0] === username
-            ? participants?.[1]
-            : participants?.[0];
-        const receiverSocket = userSocketMap.get(receiver);
-        const payload = { username: username, status: 0 };
-        if (receiverSocket) {
-          receiverSocket.emit("status msg", payload);
-        } else {
-          publish(`status_${receiver}`, JSON.stringify(payload));
-        }
-      });
-    });
-  });
-
-
   socket.on("msg", async (msg) => {
     const receiver = msg?.receiver;
     const receiverSocket = userSocketMap.get(receiver);
@@ -102,7 +80,7 @@ io.on("connection", (socket) => {
     const cId = msg?.cId;
     const text = msg?.text;
     const message = await saveChat(sender, cId, text);
-    const payload = { ...msg,createdOn: message?.createdOn, mId: message._id };
+    const payload = { ...msg, createdOn: message?.createdOn, mId: message._id };
     senderSocket.emit("sender msg", { ...payload, isSender: true });
     if (receiverSocket) {
       receiverSocket.emit("receive msg", payload);

@@ -1,6 +1,5 @@
 import { ConversationModel } from "../db/models/ConversationSchema.js";
 import { GroupConversationModel } from "../db/models/GroupConversationSchema.js";
-import { redisGetter, redisSetter } from "../caching/Redis/RedisTemplate.js";
 import { refineForSearch } from "../utill/Text.js";
 import mongoose, { Types } from "mongoose";
 import {
@@ -204,11 +203,3 @@ const conversationExists = async (participants) => {
   }
   return false;
 };
-
-export const updateStatus = async (authName,flag) => {
-  try{
-    await axios.patch(`${process.env.AUTH_HOST}/users/${authName}/status`,{status: flag})
-  }catch(e){
-    console.log(e)
-  }
-}
