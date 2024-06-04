@@ -30,3 +30,11 @@
 # Trade offs
 - Down Scaling or upscaling system when users are connected can lead to disconnection of websockets and make user status offline till he is connected again
 - It does not offers strong consistency 
+
+# Screenshots
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/add_friend.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/add_group.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/chat_screen.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/chat_screen_group.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/login_screen.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/register_screen.png)
