@@ -38,7 +38,7 @@ io.on("connection", (socket) => {
       const msg = JSON.parse(msgString);
       const receiver = msg?.receiver;
       const senderSocket = userSocketMap.get(username);
-      const room = createConversationRoom(username, receiver);
+      const room = await createConversation(username, receiver);
       const payload = { rId: rId, room: room };
       senderSocket?.emit(`friend_request_accept_${receiver}`, payload);
     });

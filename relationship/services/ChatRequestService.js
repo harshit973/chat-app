@@ -1,5 +1,4 @@
 import { ChatRequestModel } from "../db/modals/ChatRequestSchema.js";
-import TinyUrl from "tinyurl"
 
 export const getAllRequests = async (sender, receiver, status) => {
   let body = {};
