@@ -1,9 +1,9 @@
 import { ChatRequestModel } from "../db/modals/ChatRequestSchema.js";
 
 export const getAllRequests = async (sender, receiver, status) => {
-  let body = {};
+  let body = { active: true };
   if (sender) {
-    body = { sender: sender };
+    body = { ...body, sender: sender };
   }
   if (receiver) {
     body = { ...body, receiver: receiver };
@@ -11,7 +11,18 @@ export const getAllRequests = async (sender, receiver, status) => {
   if (typeof status === "boolean" || status === null) {
     body = { ...body, status: status };
   }
-  return await ChatRequestModel.find({ ...body, active: true });
+  return await ChatRequestModel.aggregate([
+    { $match: { ...body } },
+    {
+      $project: {
+        _id: 0,
+        rId: "$_id",
+        sender: "$sender",
+        receiver: "$receiver",
+        status: "$status",
+      },
+    },
+  ]);
 };
 
 export const updateStatus = async (rId, status) => {
@@ -26,10 +37,7 @@ export const updateStatus = async (rId, status) => {
 };
 
 export const deleteRequest = async (rId) => {
-  await ChatRequestModel.findByIdAndUpdate(
-    { _id: rId},
-    { active: false }
-  );
+  await ChatRequestModel.findByIdAndUpdate({ _id: rId }, { active: false });
 };
 
 const isStatusUpdated = async (rId) => {

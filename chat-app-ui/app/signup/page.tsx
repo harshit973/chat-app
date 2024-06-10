@@ -1,9 +1,13 @@
 "use client";
 
-import axios from "axios";
+import { SignUpUser } from "@/Services/SignUpUser";
+import http from "@/utils/AxiosInterceptor";
+import { routes } from "@/utils/Constant/Routes";
+import { RouteHandler } from "@/utils/RouteHandler";
+import { useToastStore } from "@/zustand/useToastStore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const Signup = () => {
   const [userName, setUserName] = useState<string>("");
@@ -11,25 +15,18 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
+  const [navigator,setNavigator] = useState<RouteHandler>(new RouteHandler(router));
+  const { showToast } = useToastStore();
 
   const register = async (e: any) => {
     e?.preventDefault();
     try {
       setLoading(true);
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/auth/signup`,
-        {
-          username: userName,
-          password: password,
-        },
-        {
-          withCredentials: true,
-        }
-      );
-      router.push("/chat");
+      await SignUpUser(userName,password)
+      navigator?.replaceCurrentAndNavigateTo(routes.chatHome);
     } catch (e: any) {
-      alert(e.message);
-    }finally {
+      showToast(e?.message ?? "Unknown error");
+    } finally {
       setLoading(false);
     }
   };

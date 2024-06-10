@@ -7,6 +7,7 @@ import { ChatRoom } from "@/types/ChatRoom";
 import { Message } from "@/types/Message";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { useChatStore } from "@/zustand/useChatStore";
+import { useInvitationStore } from "@/zustand/useInvitationStore";
 import { useParticipantStore } from "@/zustand/useParticipantsStore";
 import { usePopupStore } from "@/zustand/usePopupStore";
 import { useStatusStore } from "@/zustand/useStatusStore";
@@ -24,13 +25,21 @@ const page = ({ params }: ChatRoom) => {
   const [relationSocket, setRelationSocket] = useState<Socket | null>(null);
   const { status, updateStatus } = useStatusStore();
   const { chats, updateChats } = useChatStore();
+  const {
+    incommingInvitations,
+    outgoingInvitations,
+    updateIncommingInvitations,
+    updateOutgoingInvitations,
+  } = useInvitationStore();
   const { showToast } = useToastStore();
   const chatStoreRef = useRef(chats);
   const roomsRef = useRef(rooms);
   const NotTypingEventRef = useRef<any>(null);
+  const outgoingRef = useRef<any[]>(outgoingInvitations);
+  const incommingRef = useRef<any[]>(incommingInvitations);
 
   useEffect(() => {
-    if (!rendered.current) {
+    if (!rendered.current && authName) {
       const chatSocket: any = io(`${process.env.NEXT_PUBLIC_CHAT_HOST}`, {
         query: {
           username: authName,
@@ -40,7 +49,7 @@ const page = ({ params }: ChatRoom) => {
         query: {
           username: authName,
         },
-      });      
+      });
       const groupChatSocket: any = io(
         `${process.env.NEXT_PUBLIC_GROUP_CHAT_HOST}`,
         {
@@ -66,7 +75,7 @@ const page = ({ params }: ChatRoom) => {
       chatSocket?.close();
       relationSocket?.close();
     };
-  }, []);
+  }, [authName]);
 
   useEffect(() => {
     chatStoreRef.current = chats;
@@ -83,6 +92,51 @@ const page = ({ params }: ChatRoom) => {
   useEffect(() => {
     initializeGroupChatWebSocket();
   }, [groupChatSocket]);
+
+  useEffect(() => {
+    incommingRef.current = incommingInvitations;
+  }, [incommingInvitations]);
+
+  useEffect(() => {
+    outgoingRef.current = outgoingInvitations;
+  }, [outgoingInvitations]);
+
+  useEffect(() => {
+    if (relationSocket) {
+      const outRequests = outgoingRef.current;
+      const existingRooms = roomsRef.current ?? [];
+      outRequests?.map((req: any, idx: any) => {
+        const receiver = req?.receiver;
+        outgoingRequestStatusHandler(receiver, existingRooms, idx);
+      });
+
+      relationSocket?.on("friend_request", async (request) => {
+        const sender = request?.sender;
+        const outRequests = outgoingRef?.current ?? [];
+        const inRequests = incommingRef?.current ?? [];
+        if (sender === authName) {
+          updateOutgoingInvitations([request, ...outRequests]);
+        } else {
+          updateIncommingInvitations([request, ...inRequests]);
+          const conversationId = getConversationIdFromParams(params);
+          if (conversationId) {
+            showToast(
+              `${sender} sent you a friend request. Please check in the requests page`
+            );
+          }
+        }
+      });
+      relationSocket?.on(
+        `friend_request_accept_acknowledgement`,
+        async (reqObj) => {
+          const room = reqObj?.room;
+          if (room) {
+            updateRooms({ ...roomsRef.current, [room?._id]: room });
+          }
+        }
+      );
+    }
+  }, [relationSocket]);
 
   const getConversationIdFromParams = (params: any) => {
     return params?.conversationId?.[0];
@@ -196,7 +250,11 @@ const page = ({ params }: ChatRoom) => {
       const currentConversation = [...(chatStoreRef.current?.[cId] ?? [])];
       const updatedConversation = currentConversation?.map((existingMsg) => {
         return existingMsg?.tempTag === msg?.tempTag
-          ? { ...existingMsg, mId: msg?.mId, createdOn: new Date(msg?.createdOn ?? "") }
+          ? {
+              ...existingMsg,
+              mId: msg?.mId,
+              createdOn: new Date(msg?.createdOn ?? ""),
+            }
           : existingMsg;
       });
       updateChats({ ...chatStoreRef.current, [cId]: updatedConversation });
@@ -242,7 +300,11 @@ const page = ({ params }: ChatRoom) => {
       const currentConversation = [...(chatStoreRef.current?.[cId] ?? [])];
       const updatedConversation = currentConversation?.map((existingMsg) => {
         return existingMsg?.tempTag === msg?.tempTag
-          ? { ...existingMsg, mId: msg?.mId, createdOn: new Date(msg?.createdOn ?? "") }
+          ? {
+              ...existingMsg,
+              mId: msg?.mId,
+              createdOn: new Date(msg?.createdOn ?? ""),
+            }
           : existingMsg;
       });
       updateChats({ ...chatStoreRef.current, [cId]: updatedConversation });
@@ -254,12 +316,42 @@ const page = ({ params }: ChatRoom) => {
     return msg?.cId === getConversationIdFromParams(params);
   };
 
-  const sendInvitation = async (friendName: any) => {
+  const outgoingRequestStatusHandler = (
+    receiver: string,
+    existingRooms: any,
+    idx: number
+  ) => {
+    relationSocket?.on(`friend_request_accept_${receiver}`, async (reqObj) => {
+      const room = reqObj?.room;
+      const outRequests = outgoingRef.current ?? []
+      if (room) {
+        const newRooms = { ...existingRooms, [room?._id]: room };
+        updateRooms(newRooms);
+        if (outRequests) {
+          outRequests[idx].status = true;
+          updateOutgoingInvitations(outRequests);
+          showToast(`${receiver} has accepted your request`);
+        }
+      }
+    });
+    relationSocket?.on(`friend_request_reject_${receiver}`, async (reqObj) => {
+      const outRequests = outgoingRef.current ?? []      
+      if (outRequests) {
+        outRequests[idx].status = false;
+        updateOutgoingInvitations(outRequests);
+        showToast(`${receiver} has rejected your request`);
+      }
+    });
+  };
+
+  const sendInvitation = async (receiver: any) => {
     relationSocket?.emit("friend_request", {
       sender: authName,
       status: null,
-      receiver: friendName,
+      receiver: receiver,
     });
+    const existingRooms = roomsRef.current ?? [];
+    outgoingRequestStatusHandler(receiver, existingRooms, 0);
   };
 
   const getMembers = () => {

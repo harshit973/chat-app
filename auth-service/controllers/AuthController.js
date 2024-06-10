@@ -48,9 +48,13 @@ export const decodeJwt = async (req, res) => {
       res.status(400).send("Invalid payload");
     }
     const userData = await userModal.findById(userId, "username");
-    res.status(200).json({
-      decoded: userData?.username,
-    });
+    if(!userData){
+      res.status(400).send("Invalid token");
+    }else{
+      res.status(200).json({
+        decoded: userData?.username,
+      });
+    }
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ error: "Login failed" });

@@ -231,11 +231,3 @@ export const isAuthorizedForGroup = async (participants) => {
   );
   return unauthorizedParticipants?.length === 0;
 };
-
-export const updateStatus = async (authName,flag) => {
-  try{
-    await axios.patch(`${process.env.AUTH_HOST}/users/${authName}/status`,{status: flag})
-  }catch(e){
-    console.log(e)
-  }
-}

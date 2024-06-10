@@ -1,10 +1,12 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParticipantStore } from "../zustand/useParticipantsStore";
 import { useAuthStore } from "../zustand/useAuthStore";
 import { useStatusStore } from "../zustand/useStatusStore";
 import { useRouter } from "next/navigation";
-import { syncParticipantData } from "@/preloader/SyncParticipantData";
+import { syncParticipantData } from "@/Services/SyncParticipantData";
+import { RouteHandler } from "@/utils/RouteHandler";
+import { routes } from "@/utils/Constant/Routes";
 
 interface ParticipantListParams {
   style?: any;
@@ -25,9 +27,10 @@ const ParticipantList: React.FC<ParticipantListParams> = ({
   const { status } = useStatusStore();
   const { authName } = useAuthStore();
   const router = useRouter();
+  const [navigator,setNavigator] = useState<RouteHandler>(new RouteHandler(router));
 
   const onSearch = (searchText: string) => {
-    syncParticipantData(authName,searchText).then((participants:any)=>{
+    syncParticipantData(searchText).then((participants:any)=>{
       if (participants) {
         const roomsMap: any = {};
         participants?.forEach((participant: any) => {
@@ -55,7 +58,7 @@ const ParticipantList: React.FC<ParticipantListParams> = ({
   }
 
   const onShowInvitations = () => {
-    router.push("/chat")
+    navigator?.navigateTo(routes.chatHome)
   }
 
   return (
@@ -168,7 +171,8 @@ const ParticipantList: React.FC<ParticipantListParams> = ({
                 : "bg-slate-800 text-white"
             }`}
             onClick={() => {
-              router.push(`/chat/${roomId ?? ''}`);
+              const conversationPath = routes.conversationRoom.buildUrl(roomId)
+              navigator?.navigateTo(conversationPath)
             }}
           >
             <p>{room?.name ?? getReceiverName(room)}</p>

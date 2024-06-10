@@ -12,6 +12,8 @@ import Search from "./Search";
 import { usePopupStore } from "@/zustand/usePopupStore";
 import { generateRandomId } from "@/Utility";
 import { useToastStore } from "@/zustand/useToastStore";
+import http from "@/utils/AxiosInterceptor";
+import { CreateInvitationLink } from "@/Services/CreateInvitationLink";
 
 const ConversationRoom = ({ conversationId, chatSocket }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
@@ -65,17 +67,9 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
       async (valueMap) => {
         const expiryInSec = (valueMap?.["Expiry duration"] ?? 0) * 60;
         try {
-          const link = await axios.post(
-            `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/invitation`,
-            {
-              groupId: conversationId,
-              expiryInSec: expiryInSec,
-            },{
-              withCredentials: true
-            }
-          );
+          const link = await CreateInvitationLink(conversationId,expiryInSec);
           showPrompt("Invitation url generated", async (e) => {}, [
-            { type: "body", text: `<a href='${link.data?.url ?? ""}' target='_blank'>${link.data?.url ?? ""}</a>`,html: true },
+            { type: "body", text: `<a href='${link?.url ?? ""}' target='_blank'>${link?.url ?? ""}</a>`,html: true },
             { text: "Ok", type: "button" },
           ]);
         } catch {
@@ -104,13 +98,10 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
 
   const getMsgs = async (searchText = "") => {
     const receiver = rooms?.[conversationId];
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/${
+    const res = await http.get(
+      `/api/${
         receiver?.name ? "groupConversations" : "conversations"
-      }/${conversationId}/messages?search=${searchText}`,
-      {
-        withCredentials: true,
-      }
+      }/${conversationId}/messages?search=${searchText}`
     );
 
     if (res.data.length !== 0) {

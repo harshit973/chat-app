@@ -94,8 +94,7 @@ io.on("connection", (socket) => {
     deleteRequest(rId)
     const senderSocket = userSocketMap.get(sender);
     if (senderSocket) {
-      const payload = { rId: rId, room: room };
-      senderSocket.emit(`friend_request_reject_${receiver}`, payload);
+      senderSocket.emit(`friend_request_reject_${receiver}`, msg);
     } else {
       publish(`friend_request_reject_${receiver}`, JSON.stringify(msg));
     }

@@ -11,10 +11,7 @@ export const generateInvitationUrl = async (conversationId, expiryInSec) => {
     expiryInSec: expiryInSec,
   });
   const invitationId = invitation._id;
-  const originalInvitationUrl = `http://localhost:8084/${process.env.INVITATION_TEMPLATE?.replace(
-    process.env.INVITATION_ID,
-    invitationId
-  )}`;
+  const originalInvitationUrl = `${process.env.API_GATEWAY}/api/invitation/${invitationId}/join`;
   const shortInvitationUrl = await getTinyUrl(originalInvitationUrl);
   return shortInvitationUrl;
 };

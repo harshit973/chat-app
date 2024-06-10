@@ -1,11 +1,11 @@
 "use client";
-import { syncAuthData } from "@/preloader/SyncAuthData";
+import { syncAuthData } from "@/Services/SyncAuthData";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import NavBar from "./Navbar";
 import { ComponentChildren } from "@/types/ComponentChildren";
-import { syncParticipantData } from "@/preloader/SyncParticipantData";
+import { syncParticipantData } from "@/Services/SyncParticipantData";
 import { useParticipantStore } from "@/zustand/useParticipantsStore";
 import { usePopupStore } from "@/zustand/usePopupStore";
 import PopupLayout from "./PopupLayout";
@@ -13,12 +13,16 @@ import { useToastStore } from "@/zustand/useToastStore";
 import ToastLayout from "./ToastLayout";
 import axios from "axios";
 import { useStatusStore } from "@/zustand/useStatusStore";
+import { syncIncommingRequests, syncOutgoingRequests } from "@/Services/SyncInvitationsData";
+import { useInvitationStore } from "@/zustand/useInvitationStore";
+import { getStatus } from "@/Services/LoadStatus";
 
 const AppRenderer = ({ children }: ComponentChildren) => {
   const { authName, updateAuthName } = useAuthStore();
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const { rooms, updateRooms } = useParticipantStore();
   const { status, updateStatus } = useStatusStore();
+  const {updateIncommingInvitations,updateOutgoingInvitations,incommingInvitations,outgoingInvitations} = useInvitationStore()
   const rendering = useRef<boolean>(false);
   const router = useRouter();
   const { promptInfo, title, onSubmit, openPopup } = usePopupStore();
@@ -46,16 +50,8 @@ const AppRenderer = ({ children }: ComponentChildren) => {
         friends.push(getReceiverName(room));
       }
     });
-    await axios
-      .post(
-        `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/status`,
-        { users: friends },
-        {
-          withCredentials: true,
-        }
-      )
-      .then((res) => {
-        const users = res.data;
+    await getStatus(friends)
+      .then((users:any) => {
         let updatedStatus = { ...status };
         users?.forEach((user: any) => {
           updatedStatus = {
@@ -80,6 +76,12 @@ const AppRenderer = ({ children }: ComponentChildren) => {
           updateRooms(roomsMap);
         }
       });
+      syncIncommingRequests(authName).then((invitations)=>{
+        updateIncommingInvitations(invitations ?? [])
+      })
+      syncOutgoingRequests(authName).then((invitations)=>{
+        updateOutgoingInvitations(invitations ?? [])
+      })      
     }
   }, [authName]);
   useEffect(() => {
@@ -87,17 +89,21 @@ const AppRenderer = ({ children }: ComponentChildren) => {
       loadStatus();
     }
   }, [rooms]);
+
+  useEffect(()=>{
+    if(incommingInvitations !== null && outgoingInvitations !== null){
+        setAppLoading(false);      
+    }
+  },[incommingInvitations,outgoingInvitations])
   const prefillStores = () => {
     syncAuthData()
       .then((username: any) => {
         updateAuthName(username);
       })
       .catch(() => {
+        setAppLoading(false)
         router.replace("/signin");
       })
-      .finally(() => {
-        setAppLoading(false);
-      });
   };
   return (
     <>

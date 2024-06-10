@@ -1,12 +1,15 @@
 "use client";
 
-import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../../zustand/useAuthStore";
 import { useParticipantStore } from "../../zustand/useParticipantsStore";
 import { useChatStore } from "../../zustand/useChatStore";
+import { useToastStore } from "@/zustand/useToastStore";
+import { routes } from "@/utils/Constant/Routes";
+import { RouteHandler } from "@/utils/RouteHandler";
+import { loginWithCredentials } from "@/Services/LoginWithCredentials";
 
 const SignIn = () => {
   const [userName, setUserName] = useState<string>("");
@@ -15,27 +18,21 @@ const SignIn = () => {
   const { updateRooms } = useParticipantStore();
   const { updateChats } = useChatStore();
 
-  const router = useRouter();
+  const { showToast } = useToastStore();
+
+  const router = useRouter();  
+  const [navigator,setNavigator] = useState<RouteHandler>(new RouteHandler(router));
 
   const login = async (e: any) => {
     e?.preventDefault();
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_FE_HOST}:9000/api/auth/signin`,
-        {
-          username: userName,
-          password: password,
-        },
-        {
-          withCredentials: true,
-        }
-      );
+      await loginWithCredentials(userName,password)
       updateChats({});
       updateRooms([]);
       updateAuthName(userName);
-      router.push("/chat");
+      navigator?.replaceCurrentAndNavigateTo(routes.chatHome);
     } catch (e: any) {
-      alert(e.message);
+      showToast(e?.message ?? "Unknown error");
     }
   };
 
