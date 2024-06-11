@@ -10,6 +10,8 @@ import { useToastStore } from "@/zustand/useToastStore";
 import { routes } from "@/utils/Constant/Routes";
 import { RouteHandler } from "@/utils/RouteHandler";
 import { loginWithCredentials } from "@/Services/LoginWithCredentials";
+import { usePopupStore } from "@/zustand/usePopupStore";
+import CompanyLogo from "@/components/CompanyLogo";
 
 const SignIn = () => {
   const [userName, setUserName] = useState<string>("");
@@ -18,21 +20,26 @@ const SignIn = () => {
   const { updateRooms } = useParticipantStore();
   const { updateChats } = useChatStore();
 
-  const { showToast } = useToastStore();
+  const { showPopup } = usePopupStore();
 
-  const router = useRouter();  
-  const [navigator,setNavigator] = useState<RouteHandler>(new RouteHandler(router));
+  const router = useRouter();
+  const [navigator, setNavigator] = useState<RouteHandler>(
+    new RouteHandler(router)
+  );
 
   const login = async (e: any) => {
     e?.preventDefault();
     try {
-      await loginWithCredentials(userName,password)
+      await loginWithCredentials(userName, password);
       updateChats({});
       updateRooms([]);
       updateAuthName(userName);
       navigator?.replaceCurrentAndNavigateTo(routes.chatHome);
     } catch (e: any) {
-      showToast(e?.message ?? "Unknown error");
+      showPopup("Unable to login!", [
+        { type: "body", text: `${e?.message ?? "Unknown error"}`, html: true },
+        { text: "Ok", type: "button" },
+      ]);
     }
   };
 
@@ -46,12 +53,8 @@ const SignIn = () => {
           href="#"
           className="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
         >
-          <img
-            className="w-8 h-8 mr-2"
-            src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg"
-            alt="logo"
-          />
-          Chat App
+          <CompanyLogo />
+          {process.env.NEXT_PUBLIC_COMPANY_NAME}
         </a>
         <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">

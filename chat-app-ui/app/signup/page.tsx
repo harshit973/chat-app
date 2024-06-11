@@ -1,13 +1,13 @@
 "use client";
 
 import { SignUpUser } from "@/Services/SignUpUser";
-import http from "@/utils/AxiosInterceptor";
+import CompanyLogo from "@/components/CompanyLogo";
 import { routes } from "@/utils/Constant/Routes";
 import { RouteHandler } from "@/utils/RouteHandler";
-import { useToastStore } from "@/zustand/useToastStore";
+import { usePopupStore } from "@/zustand/usePopupStore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 const Signup = () => {
   const [userName, setUserName] = useState<string>("");
@@ -15,17 +15,22 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
-  const [navigator,setNavigator] = useState<RouteHandler>(new RouteHandler(router));
-  const { showToast } = useToastStore();
+  const [navigator, setNavigator] = useState<RouteHandler>(
+    new RouteHandler(router)
+  );
+  const { showPopup } = usePopupStore();
 
   const register = async (e: any) => {
     e?.preventDefault();
     try {
       setLoading(true);
-      await SignUpUser(userName,password)
+      await SignUpUser(userName, password);
       navigator?.replaceCurrentAndNavigateTo(routes.chatHome);
     } catch (e: any) {
-      showToast(e?.message ?? "Unknown error");
+      showPopup("Unable to signup!", [
+        { type: "body", text: `${e?.message ?? "Unknown error"}`, html: true },
+        { text: "Ok", type: "button" },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -41,12 +46,8 @@ const Signup = () => {
           href="#"
           className="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
         >
-          <img
-            className="w-8 h-8 mr-2"
-            src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg"
-            alt="logo"
-          />
-          Chat App
+          <CompanyLogo />
+          {process.env.NEXT_PUBLIC_COMPANY_NAME}
         </a>
         <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">

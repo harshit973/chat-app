@@ -6,7 +6,6 @@ import { useParticipantStore } from "@/zustand/useParticipantsStore";
 import React, { useEffect, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import "./Chat.css";
-import axios from "axios";
 import { useChatStore } from "@/zustand/useChatStore";
 import Search from "./Search";
 import { usePopupStore } from "@/zustand/usePopupStore";
@@ -19,7 +18,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const { rooms } = useParticipantStore();
-  const { showPrompt } = usePopupStore();
+  const { showPrompt,showPopup } = usePopupStore();
   const msgMap = useRef(new Map());
   const [msg, setMsg] = useState<Message | null>(null);
   const [msgToBeDeleted, setMsgToBeDeleted] = useState<any>(null);
@@ -68,7 +67,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
         const expiryInSec = (valueMap?.["Expiry duration"] ?? 0) * 60;
         try {
           const link = await CreateInvitationLink(conversationId,expiryInSec);
-          showPrompt("Invitation url generated", async (e) => {}, [
+          showPopup("Invitation url generated", [
             { type: "body", text: `<a href='${link?.url ?? ""}' target='_blank'>${link?.url ?? ""}</a>`,html: true },
             { text: "Ok", type: "button" },
           ]);

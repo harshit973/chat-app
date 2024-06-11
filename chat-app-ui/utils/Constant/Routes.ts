@@ -12,7 +12,7 @@ interface ConversationRouteDetails {
 } 
 
 export const routes:routeType = {
-    login:"/login",
+    login:"/signin",
     signup: "/signup",
     chatHome: "/chat",
     conversationRoom: {

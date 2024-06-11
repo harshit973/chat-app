@@ -3,33 +3,34 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import CompanyLogo from "./CompanyLogo";
+import { routes } from "@/utils/Constant/Routes";
 
 const NavBar = () => {
   const { authName } = useAuthStore();
 
   const signOut = (e: any) => {
     axios.get(`/api/signout`).then(() => {
-      window.location.reload()
+      window.location.reload();
     });
   };
+  const isLoginOrSignUp = () => {
+    return window.location.pathname === routes.login || window.location.pathname === routes.signup
+  }
   return (
     <>
       <nav
-        style={{ height: "65px", borderBottom: "1px solid #d3d3d3" }}
+        style={{ height: "65px", borderBottom: "1px solid #d3d3d3",zIndex:10 }}
         className="bg-white border-gray-200 dark:bg-gray-900"
       >
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto pt-4 pb-4">
           <a
             href="/"
             className="flex items-center space-x-3 rtl:space-x-reverse"
           >
-            <img
-              src="https://flowbite.com/docs/images/logo.svg"
-              className="h-8"
-              alt="Flowbite Logo"
-            />
+            <CompanyLogo />
             <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
-              Chat App
+              {process.env.NEXT_PUBLIC_COMPANY_NAME}
             </span>
           </a>
           <button
@@ -56,9 +57,9 @@ const NavBar = () => {
               />
             </svg>
           </button>
-          <div className="hidden w-full md:block md:w-auto" id="navbar-default">
+          <div style={{zIndex:10}} className="hidden w-full md:block md:w-auto" id="navbar-default">
             <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-              <li>
+              <li className={"mb-2"}>
                 <Link
                   href="/signin"
                   className="block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500"
@@ -67,7 +68,7 @@ const NavBar = () => {
                   Sign In
                 </Link>
               </li>
-              <li>
+              <li className={"mb-2"}>
                 <Link
                   href="/chat"
                   className="block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500"
@@ -76,7 +77,9 @@ const NavBar = () => {
                 </Link>
               </li>
               <li
-                className="block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500 cursor-pointer"
+                className={
+                  "mb-2 block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500 cursor-pointer"
+                }
                 onClick={signOut}
               >
                 Signout
@@ -85,7 +88,7 @@ const NavBar = () => {
           </div>
         </div>
       </nav>
-      {authName && (
+      {authName && !isLoginOrSignUp() && (
         <div className={" bg-white p-3"}>
           <p>Welcome {authName}</p>
         </div>

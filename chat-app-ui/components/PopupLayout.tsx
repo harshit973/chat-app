@@ -56,13 +56,15 @@ const PopupLayout = ({ title, onSubmit, currentPromptInfo }: any) => {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const promptInfoCopy = [...(promptInfo ?? [])];
-              promptInfoCopy.pop();
-              const valueMap: any = {};
-              promptInfoCopy?.forEach((input) => {
-                valueMap[input?.label] = input?.value;
-              });
-              onSubmit(valueMap);
+              if(onSubmit){
+                const promptInfoCopy = [...(promptInfo ?? [])];
+                promptInfoCopy.pop();
+                const valueMap: any = {};
+                promptInfoCopy?.forEach((input) => {
+                  valueMap[input?.label] = input?.value;
+                });
+                onSubmit(valueMap);
+              }
               closePrompt();
             }}
             className="p-4 md:p-5"
