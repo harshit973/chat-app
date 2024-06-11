@@ -72,7 +72,7 @@ const InvitationList = ({ relationSocket }: InvitationListType) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate dark:text-white">
-                      {req?.sender}
+                      {req?.sender === authName ? req?.receiver : req?.sender}
                     </p>
                   </div>
                   {req?.sender !== authName && (
@@ -100,7 +100,7 @@ const InvitationList = ({ relationSocket }: InvitationListType) => {
                             req?.rId,
                             req?.sender,
                             req?.receiver,
-                            false
+                            true
                           );
                           let reqListCopy = [...reqList];
                           reqListCopy[idx].status = false;

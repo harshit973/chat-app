@@ -14,9 +14,6 @@ const NavBar = () => {
       window.location.reload();
     });
   };
-  const isLoginOrSignUp = () => {
-    return window.location.pathname === routes.login || window.location.pathname === routes.signup
-  }
   return (
     <>
       <nav
@@ -88,7 +85,7 @@ const NavBar = () => {
           </div>
         </div>
       </nav>
-      {authName && !isLoginOrSignUp() && (
+      {authName && (
         <div className={" bg-white p-3"}>
           <p>Welcome {authName}</p>
         </div>

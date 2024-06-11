@@ -3,6 +3,7 @@ import {publish} from "../pubsub/redis/PubSub.js"
 
 export const createInvitationUrl = async(req, res) => {
   const { groupId, expiryInSec } = req?.body;
+  console.log(req?.body)
   const url = await generateInvitationUrl(groupId, expiryInSec);
   res?.status(200).json({ url: url });
 };

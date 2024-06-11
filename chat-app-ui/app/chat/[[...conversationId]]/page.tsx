@@ -38,6 +38,8 @@ const page = ({ params }: ChatRoom) => {
   const outgoingRef = useRef<any[]>(outgoingInvitations);
   const incommingRef = useRef<any[]>(incommingInvitations);
 
+  const statusRef = useRef<any>(status);
+
   useEffect(() => {
     if (!rendered.current && authName) {
       const chatSocket: any = io(`${process.env.NEXT_PUBLIC_CHAT_HOST}`, {
@@ -84,6 +86,10 @@ const page = ({ params }: ChatRoom) => {
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);  
 
   useEffect(() => {
     initializeChatWebSocket();
@@ -279,7 +285,8 @@ const page = ({ params }: ChatRoom) => {
       }
     });
     chatSocket.on("status msg", (msg: any) => {
-      updateStatus({ ...status, [msg?.username]: msg?.status });
+      const currentStatus = statusRef?.current ?? {};
+      updateStatus({ ...currentStatus, [msg?.username]: msg?.status });
     });
     chatSocket.on("delete msg", (msg: Message) => {
       const cId = msg?.cId;
@@ -327,6 +334,8 @@ const page = ({ params }: ChatRoom) => {
       if (room) {
         const newRooms = { ...existingRooms, [room?._id]: room };
         updateRooms(newRooms);
+        const currentStatus = statusRef?.current ?? {};
+        updateStatus({ ...currentStatus, [room?.receiver]: 1 });        
         if (outRequests) {
           outRequests[idx].status = true;
           updateOutgoingInvitations(outRequests);
