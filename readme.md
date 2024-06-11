@@ -11,6 +11,7 @@
 # Non functional requirements
 - Availability
 - Low latency
+- Highly scalable
 
 # Technologies
 - Next.js
