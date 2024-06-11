@@ -416,7 +416,7 @@ const page = ({ params }: ChatRoom) => {
                 name: valueMap?.["Group Name"],
                 participants: [authName, ...(valueMap?.["Members"] ?? [])],
               };
-              chatSocket?.emit("add group", payload);
+              groupChatSocket?.emit("add group", payload);
             },
             [
               { label: "Group Name", type: "text", value: "" },
