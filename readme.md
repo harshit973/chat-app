@@ -45,6 +45,8 @@
 - Instead of using tinyUrl for generating invitation url I will make a url shortner service for generating these url's
 - I will add feature of exchanging media files along with text messages to each other 
 
+# Screen Recording 
+[Click here to watch](https://www.loom.com/share/29682ea0c9a14d769db91f8e8b219d53)
 # Screenshots
 ![image](https://raw.githubusercontent.com/harshit973/chat-app/master/add_friend.png)
 ![image](https://raw.githubusercontent.com/harshit973/chat-app/master/add_group.png)
