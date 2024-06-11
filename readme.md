@@ -51,3 +51,5 @@
 ![image](https://raw.githubusercontent.com/harshit973/chat-app/master/chat_screen_group.png)
 ![image](https://raw.githubusercontent.com/harshit973/chat-app/master/Login_screen.png)
 ![image](https://raw.githubusercontent.com/harshit973/chat-app/master/Register_screen.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/Invitation_create_popup.png)
+![image](https://raw.githubusercontent.com/harshit973/chat-app/master/Invitation_url_generate.png)
