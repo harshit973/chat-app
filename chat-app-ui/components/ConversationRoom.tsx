@@ -68,7 +68,7 @@ const ConversationRoom = ({ conversationId, chatSocket }: any) => {
         try {
           const link = await CreateInvitationLink(conversationId,expiryInSec);
           showPopup("Invitation url generated", [
-            { type: "body", text: `<a href='${link?.url ?? ""}' target='_blank'>${link?.url ?? ""}</a>`,html: true },
+            { type: "body", text: `<a style="color:blue" className="font-medium text-primary-600 hover:underline dark:text-primary-500" href='${link?.url ?? ""}' target='_blank'>${link?.url ?? ""}</a>`,html: true },
             { text: "Ok", type: "button" },
           ]);
         } catch {
